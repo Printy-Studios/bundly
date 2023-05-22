@@ -1,5 +1,6 @@
 import fs from 'fs';
 
+
 export default function Module(path, id, hasteFS, resolver) {
     
     this.id = id;
@@ -12,6 +13,7 @@ export default function Module(path, id, hasteFS, resolver) {
     this.resolver = resolver;
 
     this.generate = () => {
+
         const dependency_map = new Map(
             hasteFS
                 .getDependencies( this.path )
@@ -21,7 +23,9 @@ export default function Module(path, id, hasteFS, resolver) {
                 ])
         )
 
-        const code = fs.readFileSync( this.path, 'utf8' );
+        let code = fs.readFileSync( this.path, 'utf8' );
+
+        console.log(code);
 
 
         this.code = code;

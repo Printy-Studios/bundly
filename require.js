@@ -23,7 +23,7 @@ const requireModule = ( module_name ) => {
 
     module_cache.set( module_name, module );
 
-    moduleFactory(module, requireModule);
+    moduleFactory(module, module.exports, requireModule);
 
     return module.exports;
 }

@@ -1,2 +1,3 @@
-//require('fss');
-require ( './one.js' ) ;
+import fn from './one.js';
+
+fn();

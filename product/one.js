@@ -1,1 +1,3 @@
-require ( './two.js' );
+import two from './two.js';
+
+export default two;

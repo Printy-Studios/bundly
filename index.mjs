@@ -11,6 +11,7 @@ import yargs from 'yargs';
 import Resolver from 'jest-resolve';
 import { DependencyResolver } from 'jest-resolve-dependencies';
 import fs from 'fs';
+import { transformSync } from '@babel/core';
 
 import Module from './module.mjs';
 
@@ -129,7 +130,7 @@ console.log( Array.from( modules.values() ).map( module => module.path ) );
 
 console.log ( chalk.bold( '> Serializing Bundle '));
 
-const wrapModule = ( id, code ) => `define( ${ id }, function( module, require ) { \n ${ code } } )`;
+const wrapModule = ( id, code ) => `define( ${ id }, function( module, exports, require ) { \n ${ code } } )`;
 
 let output = [];
 
@@ -140,6 +141,12 @@ for ( const module of Array.from( modules.values() ).reverse() ) {
     // if( ! module.dependency_map.values().length ) {
     //     continue;
     // }
+
+    code = transformSync( code, {
+        plugins: [
+            '@babel/plugin-transform-modules-commonjs'
+        ]
+    }).code;
 
     for ( const [ dependency_name, dependency_path ] of module.dependency_map ) {
         const dependency = modules.get( dependency_path );

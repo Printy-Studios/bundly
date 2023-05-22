@@ -23,15 +23,36 @@ const requireModule = ( module_name ) => {
 
     module_cache.set( module_name, module );
 
-    moduleFactory(module, requireModule);
+    moduleFactory(module, module.exports, requireModule);
 
     return module.exports;
 }
-define( 2, function( module, require ) { 
- console.log( 'the bundler works! ' ); } )
-define( 1, function( module, require ) { 
- require(2); } )
-define( 0, function( module, require ) { 
- //require('fss');
-require(1) ; } )
+define( 2, function( module, exports, require ) { 
+ "use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = _default;
+console.log('test');
+function _default() {
+  console.log("bundler works!");
+} } )
+define( 1, function( module, exports, require ) { 
+ "use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+var _two = _interopRequireDefault(require(2));
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+var _default = _two.default;
+exports.default = _default; } )
+define( 0, function( module, exports, require ) { 
+ "use strict";
+
+var _one = _interopRequireDefault(require(1));
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+(0, _one.default)(); } )
 requireModule( 0 );
