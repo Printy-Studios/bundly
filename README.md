@@ -1,0 +1,2 @@
+# bundly
+ Simple JS bundler
