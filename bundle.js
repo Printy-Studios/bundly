@@ -55,4 +55,4 @@ define( 0, function( module, exports, require ) {
 var _one = _interopRequireDefault(require(1));
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 (0, _one.default)(); } )
-requireModule( 0 );
+requireModule( 0 )

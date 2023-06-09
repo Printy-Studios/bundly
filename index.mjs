@@ -12,6 +12,7 @@ import Resolver from 'jest-resolve';
 import { DependencyResolver } from 'jest-resolve-dependencies';
 import fs from 'fs';
 import { transformSync } from '@babel/core';
+import { Worker } from 'jest-worker';
 
 import Module from './module.mjs';
 
@@ -21,6 +22,13 @@ const options = yargs(process.argv).argv;
 if ( ! options.entry ) {
     throw new Error ( 'Please provide an entry point using the --entry arg' );
 }
+
+const worker = new Worker( 
+    join( dirname( fileURLToPath( import.meta.url ) ), 'worker.js' ), 
+    {
+        enableWorkerThreads: true
+    }
+);
 
 const entry_point = resolve( String( options.entry ) );
 
@@ -124,7 +132,7 @@ function removeValueFromArrayOnce( target_array, ...values ) {
 
 const modules = generateModuleObjects( entry_point );
 
-console.log( chalk.bold( `> Found ${ chalk.blue( modules.length )} files` ) );
+console.log( chalk.bold( `> Found ${ chalk.blue( Array.from( modules.values() ).length ) } files` ) );
 //console.log( modules );
 console.log( Array.from( modules.values() ).map( module => module.path ) );
 
@@ -132,47 +140,48 @@ console.log ( chalk.bold( '> Serializing Bundle '));
 
 const wrapModule = ( id, code ) => `define( ${ id }, function( module, exports, require ) { \n ${ code } } )`;
 
-let output = [];
+const results = await Promise.all(
+    Array.from( modules.values() )
+        .reverse()
+        .map(async ( module ) => {
+            let id = module.id;
+            let code = module.code;
 
-for ( const module of Array.from( modules.values() ).reverse() ) {
-    let id = module.id;
-    let code = module.code;
+            console.log( 'worker: ');
+            console.log(worker);
 
-    // if( ! module.dependency_map.values().length ) {
-    //     continue;
-    // }
+            code = await worker.transformCode( code ).code;
 
-    code = transformSync( code, {
-        plugins: [
-            '@babel/plugin-transform-modules-commonjs'
-        ]
-    }).code;
+            console.log(code.code);
 
-    for ( const [ dependency_name, dependency_path ] of module.dependency_map ) {
-        const dependency = modules.get( dependency_path );
+            for ( const [ dependency_name, dependency_path ] of module.dependency_map ) {
+                const dependency = modules.get( dependency_path );
 
-        const escaped_dep_name = dependency_name.replace(/[\/.]/g, '\\$&');
+                const escaped_dep_name = dependency_name.replace(/[\/.]/g, '\\$&');
 
-        //console.log(`require\\s*\\(\\s*('|")${ escaped_dep_name }\\1\\s*\\)`);
+                //console.log(`require\\s*\\(\\s*('|")${ escaped_dep_name }\\1\\s*\\)`);
 
-        code = code.replace(
-            new RegExp(
-                `require\\s*\\(\\s*('|")${dependency_name.replace(/[\/.]/g, '\\$&')}\\1\\s*\\)`,
-            ),
-            `require(${dependency.id})`,
-        );
-    }
+                code = code.replace(
+                    new RegExp(
+                        `require\\s*\\(\\s*('|")${dependency_name.replace(/[\/.]/g, '\\$&')}\\1\\s*\\)`,
+                    ),
+                    `require(${dependency.id})`,
+                );
+            }
 
-    output.push( wrapModule( id, code ) );
-}
+            return wrapModule( id, code );
+        })
+)
 
-output.unshift( fs.readFileSync( './require.js', 'utf8' ) );
+const output = [
+    fs.readFileSync( './require.mjs', 'utf8' ),
+    ...results,
+    'requireModule( 0 )'
+].join( '\n' );
 
-output.push( 'requireModule( 0 );' );
 
-output = output.join( '\n' );
 if( options.output ) {
-    console.log( options.output );
+    //console.log( options.output );
     fs.writeFileSync( options.output, output, 'utf8');
 } else {
     console.log( output );
